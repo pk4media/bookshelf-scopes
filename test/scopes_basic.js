@@ -1,7 +1,6 @@
 'use strict';
 
 var expect = require('chai').expect;
-var scopes = require('../src/scopes');
 var Promise = require('bluebird');
 
 var knex = require('knex')({
@@ -10,7 +9,7 @@ var knex = require('knex')({
 });
 
 var bookshelf = require('bookshelf')(knex);
-bookshelf.plugin(scopes);
+bookshelf.plugin(require('../src/scopes'));
 
 describe('scopes - basic scope', function() {
 

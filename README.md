@@ -5,7 +5,7 @@ If you add in the plugin like so:
 ```javascript
 var bookshelf = require('bookshelf')(knex);
 
-bookshelf.plugin(scopes);
+bookshelf.plugin(require('bookshelf-scopes'));
 ```
 
 You will then be able to add a scopes property on your models that will give you
