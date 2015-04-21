@@ -4,6 +4,7 @@ var _ = require('lodash');
 
 module.exports = function(bookshelf) {
   var baseExtend = bookshelf.Model.extend;
+  var QueryBuilder = bookshelf.knex().constructor;
 
   bookshelf.Model.extend = function(protoProps) {
     var self = this;
@@ -13,10 +14,16 @@ module.exports = function(bookshelf) {
       self.prototype[property] = function() {
         var passedInArguments = _.toArray(arguments);
 
-        return this.query(function(qb) {
-          passedInArguments.unshift(qb);
+        if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
           self.scopes[property].apply(self, passedInArguments);
-        });
+
+          return self;
+        } else {
+          return this.query(function(qb) {
+            passedInArguments.unshift(qb);
+            self.scopes[property].apply(self, passedInArguments);
+          });
+        }
       };
 
       self[property] = function() {
