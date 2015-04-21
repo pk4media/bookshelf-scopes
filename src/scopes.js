@@ -15,17 +15,17 @@ module.exports = function(bookshelf) {
 
         return this.query(function(qb) {
           passedInArguments.unshift(qb);
-          self.scopes[property].apply(self.scopes, passedInArguments);
+          self.scopes[property].apply(self, passedInArguments);
         });
       };
 
       self[property] = function() {
         return this.prototype[property].apply(this, arguments);
-      }
+      };
     });
 
     return baseExtend.apply(self, arguments);
-  }
+  };
 
   var Model = bookshelf.Model.extend({
 
@@ -39,7 +39,7 @@ module.exports = function(bookshelf) {
       var self = this;
       if (self.scopes && self.scopes.default) {
         self.query(function(qb) {
-          var args = new Array();
+          var args = [];
           args.push(qb);
           self.scopes.default.apply(self.scopes, args);
         });
@@ -56,4 +56,4 @@ module.exports = function(bookshelf) {
   });
 
   bookshelf.Model = Model;
-}
+};
