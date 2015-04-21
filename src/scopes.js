@@ -12,22 +12,24 @@ module.exports = function(bookshelf) {
 
     Object.keys(self.scopes).forEach(function(property) {
       self.prototype[property] = function() {
+        var _this = this;
         var passedInArguments = _.toArray(arguments);
 
         if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
-          self.scopes[property].apply(self, passedInArguments);
+          self.scopes[property].apply(this, passedInArguments);
 
           return self;
         } else {
           return this.query(function(qb) {
             passedInArguments.unshift(qb);
-            self.scopes[property].apply(self, passedInArguments);
+            self.scopes[property].apply(_this, passedInArguments);
           });
         }
       };
 
       self[property] = function() {
-        return this.prototype[property].apply(this, arguments);
+        var model = this.forge();
+        return model[property].apply(model, arguments);
       };
     });
 
@@ -48,7 +50,7 @@ module.exports = function(bookshelf) {
         self.query(function(qb) {
           var args = [];
           args.push(qb);
-          self.scopes.default.apply(self.scopes, args);
+          self.scopes.default.apply(self, args);
         });
       }
     },
