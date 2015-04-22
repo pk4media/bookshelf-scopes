@@ -32,7 +32,6 @@ describe('scopes - inherited scope', function() {
     var TestModelBase = bookshelf.Model.extend({
       scopes: {
         active: function(qb) {
-          console.dir(this);
           qb.where(this.tableName + '.status', '=', 'Active');
         }
       }
