@@ -4,6 +4,7 @@ var _ = require('lodash');
 
 module.exports = function(bookshelf) {
   var baseExtend = bookshelf.Model.extend;
+  var QueryBuilder = bookshelf.knex().constructor;
 
   bookshelf.Model.extend = function(protoProps) {
     var self = this;
@@ -11,21 +12,29 @@ module.exports = function(bookshelf) {
 
     Object.keys(self.scopes).forEach(function(property) {
       self.prototype[property] = function() {
+        var _this = this;
         var passedInArguments = _.toArray(arguments);
 
-        return this.query(function(qb) {
-          passedInArguments.unshift(qb);
-          self.scopes[property].apply(self.scopes, passedInArguments);
-        });
+        if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
+          self.scopes[property].apply(this, passedInArguments);
+
+          return self;
+        } else {
+          return this.query(function(qb) {
+            passedInArguments.unshift(qb);
+            self.scopes[property].apply(_this, passedInArguments);
+          });
+        }
       };
 
       self[property] = function() {
-        return this.prototype[property].apply(this, arguments);
-      }
+        var model = this.forge();
+        return model[property].apply(model, arguments);
+      };
     });
 
     return baseExtend.apply(self, arguments);
-  }
+  };
 
   var Model = bookshelf.Model.extend({
 
@@ -39,9 +48,9 @@ module.exports = function(bookshelf) {
       var self = this;
       if (self.scopes && self.scopes.default) {
         self.query(function(qb) {
-          var args = new Array();
+          var args = [];
           args.push(qb);
-          self.scopes.default.apply(self.scopes, args);
+          self.scopes.default.apply(self, args);
         });
       }
     },
@@ -56,4 +65,4 @@ module.exports = function(bookshelf) {
   });
 
   bookshelf.Model = Model;
-}
+};
