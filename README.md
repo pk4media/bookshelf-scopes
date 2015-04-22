@@ -1,4 +1,7 @@
 # Bookshelf-Scopes
+
+[![Circle CI](https://circleci.com/gh/pk4media/bookshelf-scopes/tree/master.svg?style=svg&circle-token=4f67b03079c057b9ae20ef5485459f97215eebe7)](https://circleci.com/gh/pk4media/bookshelf-scopes/tree/master)
+
 Giving you Rails like scopes in Bookshelf.js.
 
 If you add in the plugin like so:
