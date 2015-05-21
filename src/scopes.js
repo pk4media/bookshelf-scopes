@@ -4,7 +4,8 @@ var _ = require('lodash');
 
 module.exports = function(bookshelf) {
   var baseExtend = bookshelf.Model.extend;
-  var QueryBuilder = bookshelf.knex().constructor;
+  // `bookshelf.knex()` was deprecated in knex v0.8.0, use `knex.queryBuilder()` instead if available
+  var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
   bookshelf.Model.extend = function(protoProps) {
     var self = this;
