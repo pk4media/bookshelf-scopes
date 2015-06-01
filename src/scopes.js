@@ -8,42 +8,45 @@ module.exports = function(bookshelf) {
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
   bookshelf.Model.extend = function(protoProps) {
-    var self = this;
-    protoProps.scopes = _.extend({}, self.prototype.scopes || {}, protoProps.scopes || {});
+    var model = baseExtend.apply(this, arguments);
 
-    Object.keys(protoProps.scopes).forEach(function(property) {
-      protoProps[property] = function() {
+    model.prototype.scopes = model.prototype.scopes || {};
+
+    _.defaults(model.prototype.scopes, this.prototype.scopes || {});
+
+    Object.keys(model.prototype.scopes).forEach(function(property) {
+      model.prototype[property] = function() {
         var _this = this;
         var passedInArguments = _.toArray(arguments);
 
         if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
-          protoProps.scopes[property].apply(this, passedInArguments);
+          this.scopes[property].apply(this, passedInArguments);
 
-          return self;
+          return this;
         } else {
           return this.query(function(qb) {
             passedInArguments.unshift(qb);
-            protoProps.scopes[property].apply(_this, passedInArguments);
+            _this.scopes[property].apply(_this, passedInArguments);
           });
         }
       };
 
-      self[property] = function() {
-        var model = this.forge();
-        return model[property].apply(model, arguments);
+      model[property] = function() {
+        var instance = model.forge();
+        return instance[property].apply(instance, arguments);
       };
     });
 
     _.each(['hasMany', 'hasOne', 'belongsToMany', 'morphOne', 'morphMany',
       'belongsTo', 'through'], function(method) {
-      var original = self.prototype[method];
-      self.prototype[method] = function() {
+      var original = model.prototype[method];
+      model.prototype[method] = function() {
         var relationship = original.apply(this, arguments);
-        if (protoProps.scopes && protoProps.scopes.default) {
+        if (relationship.model.prototype.scopes && relationship.model.prototype.scopes.default) {
           var originalSelectConstraints = relationship.relatedData.selectConstraints;
           relationship.relatedData.selectConstraints = function(knex, options) {
             originalSelectConstraints.apply(this, arguments);
-            protoProps.scopes.default.apply(this, [knex]);
+            relationship.model.prototype.scopes.default.apply(this, [knex]);
           };
         }
         return relationship;
@@ -51,7 +54,7 @@ module.exports = function(bookshelf) {
       };
     });
 
-    return baseExtend.apply(self, arguments);
+    return model;
   };
 
   var Model = bookshelf.Model.extend({

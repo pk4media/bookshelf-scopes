@@ -175,11 +175,19 @@ describe('scopes - basic scope', function() {
 
   it('no scope doesnt break existing bookshelf logic', function() {
 
+    var TestModelBase = bookshelf.Model.extend({
+      scopes: {
+        active: function(qb) {
+          qb.where({status: 'Active'});
+        }
+      }
+    });
+
     var TestModel1 = bookshelf.Model.extend({
       tableName: 'testmodel',
     });
 
-    expect(TestModel1.active).to.not.be.undefined;
+    expect(TestModel1.active).to.be.undefined;
 
     return Promise.all([
       TestModel1.forge({name: 'test', status: 'Active'}).save(),
