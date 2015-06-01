@@ -9,21 +9,21 @@ module.exports = function(bookshelf) {
 
   bookshelf.Model.extend = function(protoProps) {
     var self = this;
-    self.scopes = _.extend({}, self.scopes || {}, protoProps.scopes || {});
+    protoProps.scopes = _.extend({}, self.prototype.scopes || {}, protoProps.scopes || {});
 
-    Object.keys(self.scopes).forEach(function(property) {
-      self.prototype[property] = function() {
+    Object.keys(protoProps.scopes).forEach(function(property) {
+      protoProps[property] = function() {
         var _this = this;
         var passedInArguments = _.toArray(arguments);
 
         if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
-          self.scopes[property].apply(this, passedInArguments);
+          protoProps.scopes[property].apply(this, passedInArguments);
 
           return self;
         } else {
           return this.query(function(qb) {
             passedInArguments.unshift(qb);
-            self.scopes[property].apply(_this, passedInArguments);
+            protoProps.scopes[property].apply(_this, passedInArguments);
           });
         }
       };

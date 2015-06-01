@@ -151,4 +151,38 @@ describe('scopes - inherited scope', function() {
     });
   });
 
+  it('only gets scopes from its parent', function() {
+    var TestModelBase = bookshelf.Model.extend({
+      scopes: {
+        active: function(qb) {
+          qb.where(this.tableName + '.status', '=', 'Active');
+        }
+      }
+    });
+
+    var TestModel1 = TestModelBase.extend({
+      tableName: 'testmodel',
+      scopes: {
+        nameLike: function(qb, name) {
+          qb.where(knex.raw('name LIKE ?', name + '%'));
+        },
+        activeNameLike: function(qb, name) {
+          this.active(qb);
+          this.nameLike(qb, name);
+        }
+      }
+    });
+
+    var TestModel2 = bookshelf.Model.extend({
+      scopes: {
+        notActive: function(qb) {
+          qb.where(this.tableName + '.status', '!=', 'Active');
+        }
+      }
+    });
+
+    expect(TestModel1.prototype.scopes.active).to.not.be.undefined;
+    expect(TestModel2.prototype.scopes.active).to.be.undefined;
+  });
+
 });
