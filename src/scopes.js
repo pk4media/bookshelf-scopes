@@ -34,6 +34,23 @@ module.exports = function(bookshelf) {
       };
     });
 
+    _.each(['hasMany', 'hasOne', 'belongsToMany', 'morphOne', 'morphMany',
+      'belongsTo', 'through'], function(method) {
+      var original = self.prototype[method];
+      self.prototype[method] = function() {
+        var relationship = original.apply(this, arguments);
+        if (protoProps.scopes && protoProps.scopes.default) {
+          var originalSelectConstraints = relationship.relatedData.selectConstraints;
+          relationship.relatedData.selectConstraints = function(knex, options) {
+            originalSelectConstraints.apply(this, arguments);
+            protoProps.scopes.default.apply(this, [knex]);
+          };
+        }
+        return relationship;
+
+      };
+    });
+
     return baseExtend.apply(self, arguments);
   };
 
