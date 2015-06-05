@@ -1,6 +1,6 @@
 {
   "name": "bookshelf-scopes",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Giving you Rails like scopes in Bookshelf.js.",
   "main": "src/scopes.js",
   "dependencies": {
