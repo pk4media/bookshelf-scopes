@@ -143,6 +143,7 @@ describe('scopes - basic scope', function() {
   it('can add combine scope methods from base model and fetchAll from db', function() {
 
     var TestModelBase = bookshelf.Model.extend({
+      name: 'TestModelBase',
       scopes: {
         active: function(qb) {
           qb.where({status: 'Active'});
@@ -151,6 +152,7 @@ describe('scopes - basic scope', function() {
     });
 
     var TestModel1 = TestModelBase.extend({
+      name: 'TestModel1',
       tableName: 'testmodel',
       scopes: {
         nameLike: function(qb, name) {
@@ -184,6 +186,7 @@ describe('scopes - basic scope', function() {
     });
 
     var TestModel1 = bookshelf.Model.extend({
+      name: 'TestModel1',
       tableName: 'testmodel',
     });
 

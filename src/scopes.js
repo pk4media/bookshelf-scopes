@@ -3,11 +3,12 @@
 var _ = require('lodash');
 
 module.exports = function(bookshelf) {
+  var base = bookshelf.Model;
   var baseExtend = bookshelf.Model.extend;
   // `bookshelf.knex()` was deprecated in knex v0.8.0, use `knex.queryBuilder()` instead if available
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
-  bookshelf.Model.extend = function(protoProps) {
+  bookshelf.Model.extend = function(protoProps, constructorProps) {
     var model = baseExtend.apply(this, arguments);
 
     model.prototype.scopes = model.prototype.scopes || {};
@@ -69,9 +70,7 @@ module.exports = function(bookshelf) {
       var self = this;
       if (self.scopes && self.scopes.default) {
         self.query(function(qb) {
-          var args = [];
-          args.push(qb);
-          self.scopes.default.apply(self, args);
+          self.scopes.default.call(self, qb);
         });
       }
     },

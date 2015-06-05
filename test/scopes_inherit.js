@@ -185,4 +185,58 @@ describe('scopes - inherited scope', function() {
     expect(TestModel2.prototype.scopes.active).to.be.undefined;
   });
 
+  it("default override behaves properly", function() {
+    var TestModelBase = bookshelf.Model.extend({
+      name: 'TestModelBase',
+      tableName: 'testmodel',
+      scopes: {
+        default: function(qb) {
+          qb.orderBy('id', 'DESC');
+        }
+      }
+    });
+
+    var TestModel1 = TestModelBase.extend({
+      name: 'TestModel1',
+      scopes: {
+        default: function(qb) {
+          qb.where('testmodel.status', '=', 'Active');
+        },
+      }
+    });
+
+    var TestModel2 = bookshelf.Model.extend({
+      name: 'TestModel2',
+      scopes: {
+        default: function(qb) {
+          qb.where('testmodel.status', '=', 'NotActive');
+        }
+      }
+    });
+
+    return Promise.all([
+      TestModelBase.forge({name: 'test1', status: 'Active'}).save(),
+      TestModelBase.forge({name: 'test2', status: 'NotActive'}).save(),
+    ]).then(function() {
+      return Promise.all([
+        TestModel1.fetchAll().then(function(allActive) {
+          expect(allActive.length).to.equal(1);
+          expect(allActive.models[0].get('status')).to.equal('Active');
+          expect(allActive.models[0].get('name')).to.equal('test1');
+        }),
+        TestModelBase.fetchAll().then(function(all) {
+          expect(all.length).to.equal(2);
+        }),
+        TestModel1.fetchAll().then(function(allActive) {
+          expect(allActive.length).to.equal(1);
+          expect(allActive.models[0].get('status')).to.equal('Active');
+          expect(allActive.models[0].get('name')).to.equal('test1');
+        }),
+        TestModelBase.fetchAll().then(function(all) {
+          expect(all.length).to.equal(2);
+        })
+      ]);
+    });
+  });
+
 });
