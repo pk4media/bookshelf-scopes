@@ -43,11 +43,13 @@ module.exports = function(bookshelf) {
       var original = model.prototype[method];
       model.prototype[method] = function() {
         var relationship = original.apply(this, arguments);
-        if (relationship.model.prototype.scopes && relationship.model.prototype.scopes.default) {
+        var target = relationship.model || relationship.relatedData.target;
+
+        if (target.prototype.scopes && target.prototype.scopes.default) {
           var originalSelectConstraints = relationship.relatedData.selectConstraints;
           relationship.relatedData.selectConstraints = function(knex, options) {
             originalSelectConstraints.apply(this, arguments);
-            relationship.model.prototype.scopes.default.apply(this, [knex]);
+            target.prototype.scopes.default.apply(this, [knex]);
           };
         }
         return relationship;
