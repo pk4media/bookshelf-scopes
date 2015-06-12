@@ -36,7 +36,6 @@ describe('scopes - related scope', function() {
         return bookshelf.knex.schema.createTable('testrole', function (table) {
           table.increments();
           table.string('name');
-          //table.integer('testmodel_id');
           table.boolean('deleted');
         });
       }),
