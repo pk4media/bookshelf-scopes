@@ -89,7 +89,7 @@ describe('scopes - related scope', function() {
     });
   });
 
-  it('default scope is on related data fetch only once', function() {
+  it('default scope is on related data fetch with through', function() {
 
     var TestModel1 = bookshelf.Model.extend({
       tableName: 'testmodel',
@@ -114,8 +114,8 @@ describe('scopes - related scope', function() {
     return Promise.all([
       TestModel1.forge({name: 'test', testrole_id: 1}).save(),
       TestModel1.forge({name: 'test2', testrole_id: 2}).save(),
-      TestRole.forge({name: 'Company', deleted: false }).save(),
-      TestRole.forge({name: 'Region', deleted: false }).save()
+      TestRole.forge({name: 'Company'}).save(),
+      TestRole.forge({name: 'Region'}).save()
     ]).then(function() {
       return TestRole.fetchAll({
         withRelated: ['test_models']
