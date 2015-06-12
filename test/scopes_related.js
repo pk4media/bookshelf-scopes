@@ -36,6 +36,8 @@ describe('scopes - related scope', function() {
         return bookshelf.knex.schema.createTable('testrole', function (table) {
           table.increments();
           table.string('name');
+          //table.integer('testmodel_id');
+          table.boolean('deleted');
         });
       }),
       bookshelf.knex.schema.hasTable('testjoin').then(function(exists) {
@@ -87,7 +89,7 @@ describe('scopes - related scope', function() {
     });
   });
 
-  it('default scope is on related data fetch with through', function() {
+  it('default scope is on related data fetch only once', function() {
 
     var TestModel1 = bookshelf.Model.extend({
       tableName: 'testmodel',
@@ -100,7 +102,7 @@ describe('scopes - related scope', function() {
 
     var TestJoin = bookshelf.Model.extend({
       tableName: 'testjoin'
-    })
+    });
 
     var TestRole = bookshelf.Model.extend({
       tableName: 'testrole',
@@ -112,8 +114,8 @@ describe('scopes - related scope', function() {
     return Promise.all([
       TestModel1.forge({name: 'test', testrole_id: 1}).save(),
       TestModel1.forge({name: 'test2', testrole_id: 2}).save(),
-      TestRole.forge({name: 'Company'}).save(),
-      TestRole.forge({name: 'Region'}).save()
+      TestRole.forge({name: 'Company', deleted: false }).save(),
+      TestRole.forge({name: 'Region', deleted: false }).save()
     ]).then(function() {
       return TestRole.fetchAll({
         withRelated: ['test_models']
@@ -124,5 +126,42 @@ describe('scopes - related scope', function() {
         });
       });
     });
+  });
+
+  it("can get related with a default the other way", function() {
+    var Role = bookshelf.Model.extend({
+      tableName: 'testrole',
+      scopes: {
+        default: function(qb) {
+          qb.where({ 'deleted': 0} );
+        }
+      }
+    });
+
+    var Account = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      role: function() {
+        return this.belongsTo(Role);
+      },
+      scopes: {
+        active: function(qb) {
+          qb.where({ status: 'active' });
+        }
+      }
+    });
+
+    return Promise.all([
+      Account.forge({name: 'test', testrole_id: 1}).save(),
+      Account.forge({name: 'test2', testrole_id: 1}).save(),
+      Role.forge({name: 'Company', deleted: false }).save(),
+      Role.forge({name: 'Region', deleted: false }).save()
+    ]).then(function() {
+      return Account.where({ id: 1 }).fetch({ withRelated: ['role'] });
+    }).then(function(account) {
+      expect(account.id).to.equal(1);
+      expect(account.related('role').get('name')).to.equal('Company');
+    });
+
+
   });
 });

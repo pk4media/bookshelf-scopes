@@ -48,8 +48,11 @@ module.exports = function(bookshelf) {
         if (target.prototype.scopes && target.prototype.scopes.default) {
           var originalSelectConstraints = relationship.relatedData.selectConstraints;
           relationship.relatedData.selectConstraints = function(knex, options) {
-            originalSelectConstraints.apply(this, arguments);
-            target.prototype.scopes.default.apply(this, [knex]);
+            originalSelectConstraints.apply(this, [knex, options]);
+            if (!knex.appliedDefault) {
+              knex.appliedDefault = true;
+              target.prototype.scopes.default.apply(this, [knex, options]);
+            }
           };
         }
         return relationship;
@@ -72,7 +75,10 @@ module.exports = function(bookshelf) {
       var self = this;
       if (self.scopes && self.scopes.default) {
         self.query(function(qb) {
-          self.scopes.default.call(self, qb);
+          if (!qb.appliedDefault) {
+            qb.appliedDefault = true;
+            self.scopes.default.call(self, qb);
+          }
         });
       }
     },
