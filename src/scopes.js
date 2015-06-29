@@ -127,3 +127,4 @@ module.exports = function(bookshelf) {
   });
 
   bookshelf.Model = Model;
+};
