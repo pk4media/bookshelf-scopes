@@ -44,17 +44,51 @@ module.exports = function(bookshelf) {
       model.prototype[method] = function() {
         var relationship = original.apply(this, arguments);
         var target = relationship.model || relationship.relatedData.target;
+        var originalSelectConstraints = relationship.relatedData.selectConstraints;
 
-        if (target.prototype.scopes && target.prototype.scopes.default) {
-          var originalSelectConstraints = relationship.relatedData.selectConstraints;
+        if (target.prototype.scopes) {
           relationship.relatedData.selectConstraints = function(knex, options) {
-            originalSelectConstraints.apply(this, [knex, options]);
-            if (!knex.appliedDefault) {
-              knex.appliedDefault = true;
-              target.prototype.scopes.default.apply(this, [knex, options]);
+            originalSelectConstraints.apply(this, arguments);
+            if (target.prototype.scopes.default) {
+              if (!knex.appliedDefault) {
+                knex.appliedDefault = true;
+                target.prototype.scopes.default.apply(this, [knex, options]);
+              }
             }
           };
+
+          Object.keys(target.prototype.scopes).forEach(function(key) {
+            relationship[key] = function() {
+              var passedInArguments = _.toArray(arguments);
+              var currentSelectConstraints = relationship.relatedData.selectConstraints;
+              relationship.relatedData.selectConstraints = function(knex, options) {
+                currentSelectConstraints.apply(this, arguments);
+                passedInArguments.unshift(knex);
+                target.prototype.scopes[key].apply(this, passedInArguments);
+              };
+              return relationship;
+            };
+          });
+
+          relationship.unscoped = function() {
+            relationship.relatedData.selectConstraints = function(knex, options) {
+
+              var originalDefaultScope;
+              if(target.prototype.scopes && target.prototype.scopes.default) {
+                originalDefaultScope = target.prototype.scopes.default;
+                delete target.prototype.scopes.default;
+              }
+
+              originalSelectConstraints.apply(this, arguments);
+
+              if (originalDefaultScope) {
+                target.prototype.scopes.default = originalDefaultScope;
+              }
+            };
+            return relationship;
+          };
         }
+
         return relationship;
 
       };
