@@ -111,12 +111,6 @@ like this:
 var TestModel = bookshelf.Model.extend({
   tableName: 'testmodel',
   scopes: {
-    running: function(qb) {
-      qb.where({running: 0});
-    },
-    byDate: function(qb, date) {
-      qb.where('created_date', '>=', date);
-    },
     active: function(qb) {
       qb.where('active', '=', true);
     }
