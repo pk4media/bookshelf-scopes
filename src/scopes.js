@@ -72,12 +72,15 @@ module.exports = function(bookshelf) {
 
           relationship.unscoped = function() {
             relationship.relatedData.selectConstraints = function(knex, options) {
+
               var originalDefaultScope;
               if(target.prototype.scopes && target.prototype.scopes.default) {
                 originalDefaultScope = target.prototype.scopes.default;
                 delete target.prototype.scopes.default;
               }
+
               originalSelectConstraints.apply(this, arguments);
+
               if (originalDefaultScope) {
                 target.prototype.scopes.default = originalDefaultScope;
               }
@@ -124,4 +127,3 @@ module.exports = function(bookshelf) {
   });
 
   bookshelf.Model = Model;
-};
