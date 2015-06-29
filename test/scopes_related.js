@@ -163,4 +163,147 @@ describe('scopes - related scope', function() {
 
 
   });
+
+  it('Can add scopes on related', function() {
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      scopes: {
+        active: function(qb) {
+          qb.where({'archived': false});
+        }
+      }
+    });
+
+    var TestRole = bookshelf.Model.extend({
+      tableName: 'testrole',
+      test_models: function() {
+        return this.hasMany(TestModel1).active();
+      }
+    });
+
+    return Promise.all([
+      TestModel1.forge({name: 'test1', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'test2', testrole_id: 1, archived: false}).save(),
+      TestRole.forge({name: 'Company'}).save()
+    ]).then(function() {
+      return TestRole.fetchAll({
+        withRelated: ['test_models']
+      }).then(function(allRoles) {
+        expect(allRoles.length).to.equal(1);
+        expect(allRoles.at(0).related('test_models').length).to.equal(1);
+      });
+    });
+  });
+
+  it('Can call unscoped on related', function() {
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      scopes: {
+        default: function(qb) {
+          qb.where({'archived': false});
+        }
+      }
+    });
+
+    var TestRole = bookshelf.Model.extend({
+      tableName: 'testrole',
+      test_models: function() {
+        return this.hasMany(TestModel1).unscoped();
+      }
+    });
+
+    return Promise.all([
+      TestModel1.forge({name: 'test', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'test2', testrole_id: 2, archived: true}).save(),
+      TestRole.forge({name: 'Company'}).save(),
+      TestRole.forge({name: 'Region'}).save()
+    ]).then(function() {
+      return TestRole.fetchAll({
+        withRelated: ['test_models']
+      }).then(function(allRoles) {
+        expect(allRoles.length).to.equal(2);
+        allRoles.forEach(function(role) {
+          expect(role.related('test_models').length).to.equal(1);
+        });
+      });
+    });
+  });
+
+  it('Can call unscoped and with scope on related', function() {
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      scopes: {
+        default: function(qb) {
+          qb.where({'archived': false});
+        },
+        nameContains: function(qb, partialName) {
+          qb.where('name', 'LIKE', '%' + partialName + '%');
+        }
+      }
+    });
+
+    var TestRole = bookshelf.Model.extend({
+      tableName: 'testrole',
+      test_models: function() {
+        return this.hasMany(TestModel1).unscoped().nameContains('test');
+      }
+    });
+
+    return Promise.all([
+      TestModel1.forge({name: 'test', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'test2', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'jt1', testrole_id: 1, archived: false}).save(),
+      TestRole.forge({name: 'Company'}).save(),
+    ]).then(function() {
+      return TestRole.fetchAll({
+        withRelated: ['test_models']
+      }).then(function(allRoles) {
+        expect(allRoles.length).to.equal(1);
+        allRoles.forEach(function(role) {
+          expect(role.related('test_models').length).to.equal(2);
+        });
+      });
+    });
+  });
+
+  it('Can call two scoped on related for same table', function() {
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      scopes: {
+        active: function(qb) {
+          qb.where({'archived': false});
+        },
+
+        unactive: function(qb) {
+          qb.where({'archived': true});
+        }
+      }
+    });
+
+    var TestRole = bookshelf.Model.extend({
+      tableName: 'testrole',
+      active_test_models: function() {
+        return this.hasMany(TestModel1).active();
+      },
+      unactive_test_models: function() {
+        return this.hasMany(TestModel1).unactive();
+      }
+    });
+
+    return Promise.all([
+      TestModel1.forge({name: 'test1', testrole_id: 1, archived: false}).save(),
+      TestModel1.forge({name: 'test2', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'test3', testrole_id: 1, archived: true}).save(),
+      TestRole.forge({name: 'Company'}).save(),
+    ]).then(function() {
+      return TestRole.fetchAll({
+        withRelated: ['active_test_models', 'unactive_test_models']
+      }).then(function(allRoles) {
+        expect(allRoles.length).to.equal(1);
+
+        expect(allRoles.at(0).related('active_test_models').length).to.equal(1);
+        expect(allRoles.at(0).related('unactive_test_models').length).to.equal(2);
+      });
+    });
+  });
 });

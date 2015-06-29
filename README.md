@@ -102,6 +102,38 @@ TestModel.runningByDate('2015-01-01').fetchAll().then(function(allUnArchived) {
 });
 ```
 
+### Scopes on Relationships
+
+You can also use scopes in the relationships as well. So you could have a model
+like this:
+
+```javascript
+var TestModel = bookshelf.Model.extend({
+  tableName: 'testmodel',
+  scopes: {
+    running: function(qb) {
+      qb.where({running: 0});
+    },
+    byDate: function(qb, date) {
+      qb.where('created_date', '>=', date);
+    },
+    active: function(qb) {
+      qb.where('active', '=', true);
+    }
+  }
+});
+```
+And then you can have a model that has many active models above as children like so:
+
+```javascript
+var MyModel = bookshelf.Model.extend({
+  tableName: 'mymodel',
+  active_test_models: function() {
+    return this.hasMany(TestModel1).active();
+  }
+});
+```
+
 ### Override Initialize
 
 If in your model you set an initialize you will need to call addScope() to add default scope if you want it
