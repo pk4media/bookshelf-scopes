@@ -64,7 +64,7 @@ module.exports = function(bookshelf) {
               relationship.relatedData.selectConstraints = function(knex, options) {
                 currentSelectConstraints.apply(this, arguments);
                 passedInArguments.unshift(knex);
-                target.prototype.scopes[key].apply(this, passedInArguments);
+                target.prototype.scopes[key].apply(target.prototype, passedInArguments);
               };
               return relationship;
             };

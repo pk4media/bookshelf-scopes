@@ -195,6 +195,41 @@ describe('scopes - related scope', function() {
     });
   });
 
+  it('Can access prototype variables from related', function() {
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel',
+      scopes: {
+        active: function(qb) {
+          if (this !== TestModel1.prototype) {
+            throw new Error('this not set to target prototype');
+          }
+
+          qb.where({'archived': false});
+        }
+      }
+    });
+
+    var TestRole = bookshelf.Model.extend({
+      tableName: 'testrole',
+      test_models: function() {
+        return this.hasMany(TestModel1).active();
+      }
+    });
+
+    return Promise.all([
+      TestModel1.forge({name: 'test1', testrole_id: 1, archived: true}).save(),
+      TestModel1.forge({name: 'test2', testrole_id: 1, archived: false}).save(),
+      TestRole.forge({name: 'Company'}).save()
+    ]).then(function() {
+      return TestRole.fetchAll({
+        withRelated: ['test_models']
+      }).then(function(allRoles) {
+        expect(allRoles.length).to.equal(1);
+        expect(allRoles.at(0).related('test_models').length).to.equal(1);
+      });
+    });
+  });
+
   it('Can call unscoped on related', function() {
     var TestModel1 = bookshelf.Model.extend({
       tableName: 'testmodel',
