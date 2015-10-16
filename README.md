@@ -29,7 +29,7 @@ var TestModel = bookshelf.Model.extend({
     active: function(qb) {
       qb.where({status: 'Active'});
     },
-    nameContains: function(gb, text) {
+    nameContains: function(qb, name) {
       qb.where(knex.raw('name LIKE ?', '%' + name + '%'));
     }
   }
