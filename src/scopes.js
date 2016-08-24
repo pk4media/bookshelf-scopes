@@ -2,130 +2,123 @@
 
 var _ = require('lodash');
 
+var applyScope = function (_this, applier) {
+  return function (qb) {
+    var tempStatements = qb._statements.slice();
+
+    // Apply scope
+    applier.call(_this, qb);
+
+    // Find added statements
+    qb._statements.filter(function (statement) {
+      return !tempStatements.some(_.matches(statement));
+    // Memorize scoped statements
+    }).forEach(function (statement) {
+      _this.unscoped.scopeStatements.push(statement);
+    })
+  };
+}
+
 module.exports = function(bookshelf) {
-  var base = bookshelf.Model;
-  var baseExtend = bookshelf.Model.extend;
+  var ModelCtor = bookshelf.Model;
+  var CollectionCtor = bookshelf.Collection;
   // `bookshelf.knex()` was deprecated in knex v0.8.0, use `knex.queryBuilder()` instead if available
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
-  bookshelf.Model.extend = function(protoProps, constructorProps) {
-    var model = baseExtend.apply(this, arguments);
+  var extend = function(protoProps, constructorProps) {
+    // Model/Collection abstraction
+    var isModel = !this.prototype.model;
+    var baseExtend = isModel
+      ? ModelCtor.extend
+      : CollectionCtor.extend;
 
-    model.prototype.scopes = model.prototype.scopes || {};
+    // Call unmodified `extend`
+    var target = baseExtend.apply(this, arguments);
 
-    _.defaults(model.prototype.scopes, this.prototype.scopes || {});
+    // Parent model
+    var Model = isModel ? this : target.prototype.model;
 
-    Object.keys(model.prototype.scopes).forEach(function(property) {
-      model.prototype[property] = function() {
+    // Inherit scopes from parent
+    target.prototype.scopes = _.defaults({}, target.prototype.scopes || {}, Model.prototype.scopes || {});
+
+    // Scopes as prototype methods
+    Object.keys(target.prototype.scopes).forEach(function(property) {
+      target.prototype[property] = function() {
         var _this = this;
         var passedInArguments = _.toArray(arguments);
 
-        if (passedInArguments.length > 0 && passedInArguments[0] instanceof QueryBuilder) {
-          this.scopes[property].apply(this, passedInArguments);
-
-          return this;
-        } else {
-          return this.query(function(qb) {
+        return this.query(applyScope(this, function(qb) {
+          if (passedInArguments.length == 0 || !(passedInArguments[0] instanceof QueryBuilder)) {
             passedInArguments.unshift(qb);
-            _this.scopes[property].apply(_this, passedInArguments);
-          });
-        }
+          }
+          _this.scopes[property].apply(_this, passedInArguments);
+        }));
       };
 
-      model[property] = function() {
-        var instance = model.forge();
+      target[property] = function() {
+        var instance = target.forge();
         return instance[property].apply(instance, arguments);
       };
     });
 
-    _.each(['hasMany', 'hasOne', 'belongsToMany', 'morphOne', 'morphMany',
-      'belongsTo', 'through'], function(method) {
-      var original = model.prototype[method];
-      model.prototype[method] = function() {
-        var relationship = original.apply(this, arguments);
-        var target = relationship.model || relationship.relatedData.target;
-        var originalSelectConstraints = relationship.relatedData.selectConstraints;
-
-        if (target.prototype.scopes) {
-          relationship.relatedData.selectConstraints = function(knex, options) {
-            originalSelectConstraints.apply(this, arguments);
-            if (target.prototype.scopes.default) {
-              if (!knex.appliedDefault) {
-                knex.appliedDefault = true;
-                target.prototype.scopes.default.apply(this, [knex, options]);
-              }
-            }
-          };
-
-          Object.keys(target.prototype.scopes).forEach(function(key) {
-            relationship[key] = function() {
-              var passedInArguments = _.toArray(arguments);
-              var currentSelectConstraints = relationship.relatedData.selectConstraints;
-              relationship.relatedData.selectConstraints = function(knex, options) {
-                currentSelectConstraints.apply(this, arguments);
-                passedInArguments.unshift(knex);
-                target.prototype.scopes[key].apply(target.prototype, passedInArguments);
-              };
-              return relationship;
-            };
-          });
-
-          relationship.unscoped = function() {
-            relationship.relatedData.selectConstraints = function(knex, options) {
-
-              var originalDefaultScope;
-              if(target.prototype.scopes && target.prototype.scopes.default) {
-                originalDefaultScope = target.prototype.scopes.default;
-                delete target.prototype.scopes.default;
-              }
-
-              originalSelectConstraints.apply(this, arguments);
-
-              if (originalDefaultScope) {
-                target.prototype.scopes.default = originalDefaultScope;
-              }
-            };
-            return relationship;
-          };
-        }
-
-        return relationship;
-
-      };
-    });
-
-    return model;
+    return target;
   };
 
-  var Model = bookshelf.Model.extend({
+  var abstractProperties = [{
 
     scopes: null,
 
     initialize: function() {
-      base.prototype.initialize.call(this)
+      var superInitialize = (this instanceof ModelCtor
+        ? ModelCtor
+        : CollectionCtor).prototype.initialize;
+      this.unscoped.scopeStatements = [];
+      superInitialize.call(this);
       this.addScope();
     },
 
     addScope: function() {
       var self = this;
       if (self.scopes && self.scopes.default) {
-        self.query(function(qb) {
+        self.query(applyScope(this, function(qb) {
           if (!qb.appliedDefault) {
-            qb.appliedDefault = true;
             self.scopes.default.call(self, qb);
           }
-        });
+        }));
       }
     },
 
     unscoped: function() {
-      return this.resetQuery();
+      var unscoped = this.unscoped;
+      return this.query(function function_name(qb) {
+        // Remove scoped statements
+        _.remove(qb._statements, function (statement) {
+          return unscoped.scopeStatements.some(_.matches(statement));
+        });
+        // Clear scoped statements registry
+        unscoped.scopeStatements = [];
+        // and default applied state
+        qb.appliedDefault = false;
+      });
     }
   }, {
+
+    extend: extend,
+
+    collection: function () {
+      var Collection = bookshelf.Collection.extend({model: this});
+      return new (Function.prototype.bind.apply(Collection, [null].concat(Array.prototype.slice.call(arguments))))();
+    },
+
     unscoped: function() {
       return this.forge().unscoped();
     }
-  });
+  }];
+
+  var Model = extend.apply(ModelCtor, abstractProperties);
+  delete abstractProperties[1].collection;
+  var Collection = extend.apply(CollectionCtor, abstractProperties);
 
   bookshelf.Model = Model;
+  bookshelf.Collection = Collection;
 };
