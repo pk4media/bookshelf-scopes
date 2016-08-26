@@ -9,7 +9,7 @@ module.exports = function(bookshelf) {
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
   var extended = function(Target) {
-    if (_.isFunction(this.extended) && this.extended !== Target.extended) this.extended(Target);
+    if (_.isFunction(base.extended) && Target.extended != base.extended) base.extended(Target);
 
     Target.prototype.scopes = Target.prototype.scopes || {};
 
