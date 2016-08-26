@@ -25,25 +25,21 @@ module.exports = function(bookshelf) {
   // `bookshelf.knex()` was deprecated in knex v0.8.0, use `knex.queryBuilder()` instead if available
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
-  var extend = function(protoProps, constructorProps) {
+  var extended = function(Target) {
+    if (_.isFunction(this.extended) && this.extended !== Target.extended) this.extended(Target);
+    
     // Model/Collection abstraction
     var isModel = !this.prototype.model;
-    var baseExtend = isModel
-      ? ModelCtor.extend
-      : CollectionCtor.extend;
-
-    // Call unmodified `extend`
-    var target = baseExtend.apply(this, arguments);
 
     // Parent model
-    var Model = isModel ? this : target.prototype.model;
+    var Model = isModel ? this : Target.prototype.model;
 
     // Inherit scopes from parent
-    target.prototype.scopes = _.defaults({}, target.prototype.scopes || {}, Model.prototype.scopes || {});
+    Target.prototype.scopes = _.defaults({}, Target.prototype.scopes || {}, Model.prototype.scopes || {});
 
     // Scopes as prototype methods
-    Object.keys(target.prototype.scopes).forEach(function(property) {
-      target.prototype[property] = function() {
+    Object.keys(Target.prototype.scopes).forEach(function(property) {
+      Target.prototype[property] = function() {
         var _this = this;
         var passedInArguments = _.toArray(arguments);
 
@@ -55,13 +51,11 @@ module.exports = function(bookshelf) {
         }));
       };
 
-      target[property] = function() {
-        var instance = target.forge();
+      Target[property] = function() {
+        var instance = Target.forge();
         return instance[property].apply(instance, arguments);
       };
     });
-
-    return target;
   };
 
   var abstractProperties = [{
@@ -73,7 +67,7 @@ module.exports = function(bookshelf) {
         ? ModelCtor
         : CollectionCtor).prototype.initialize;
       this.unscoped.scopeStatements = [];
-      superInitialize.call(this);
+      superInitialize.apply(this, arguments);
       this.addScope();
     },
 
@@ -103,7 +97,7 @@ module.exports = function(bookshelf) {
     }
   }, {
 
-    extend: extend,
+    extended: extended,
 
     collection: function () {
       var Collection = bookshelf.Collection.extend({model: this});
@@ -115,9 +109,9 @@ module.exports = function(bookshelf) {
     }
   }];
 
-  var Model = extend.apply(ModelCtor, abstractProperties);
+  var Model = ModelCtor.extend.apply(ModelCtor, abstractProperties);
   delete abstractProperties[1].collection;
-  var Collection = extend.apply(CollectionCtor, abstractProperties);
+  var Collection = CollectionCtor.extend.apply(CollectionCtor, abstractProperties);
 
   bookshelf.Model = Model;
   bookshelf.Collection = Collection;
