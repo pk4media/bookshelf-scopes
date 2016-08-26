@@ -26,10 +26,15 @@ module.exports = function(bookshelf) {
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
   var extended = function(Target) {
-    if (_.isFunction(this.extended) && this.extended !== Target.extended) this.extended(Target);
     
     // Model/Collection abstraction
     var isModel = !this.prototype.model;
+
+    var Ctor = isModel ? ModelCtor: CollectionCtor;
+
+    if (_.isFunction(Ctor.extended) && this.extended != Ctor.extended) {
+      Ctor.extended(Target);
+    }
 
     // Parent model
     var Model = isModel ? this : Target.prototype.model;
