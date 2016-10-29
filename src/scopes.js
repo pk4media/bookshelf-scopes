@@ -10,12 +10,11 @@ var applyScope = function (_this, applier) {
     applier.call(_this, qb);
 
     // Find added statements
-    qb._statements.filter(function (statement) {
-      return !tempStatements.some(_.matches(statement));
+    _.difference(qb._statements, tempStatements)
     // Memorize scoped statements
-    }).forEach(function (statement) {
+    .forEach(function (statement) {
       _this.unscoped.scopeStatements.push(statement);
-    })
+    });
   };
 }
 
