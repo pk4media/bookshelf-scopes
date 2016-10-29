@@ -229,6 +229,7 @@ describe('scopes - basic scope', function() {
   });
 
   it('plugin initialize calls super initialize (#10)', function() {
+
     var superInitializeCalled = 0;
     var bookshelf = require('bookshelf')(knex);
     bookshelf.Model = bookshelf.Model.extend({
@@ -241,7 +242,7 @@ describe('scopes - basic scope', function() {
       tableName: 'testmodel'
     });
 
-    TestModel1.forge({name: 'test', status: 'Active'});
+    TestModel1.forge();
     expect(superInitializeCalled).to.equal(1);
   });
 
