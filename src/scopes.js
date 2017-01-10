@@ -8,15 +8,15 @@ module.exports = function(bookshelf) {
   // `bookshelf.knex()` was deprecated in knex v0.8.0, use `knex.queryBuilder()` instead if available
   var QueryBuilder = (bookshelf.knex.queryBuilder) ? bookshelf.knex.queryBuilder().constructor : bookshelf.knex().constructor;
 
-  bookshelf.Model.extend = function(protoProps, constructorProps) {
-    var model = baseExtend.apply(this, arguments);
+  var extended = function(Target) {
+    if (_.isFunction(base.extended) && Target.extended != base.extended) base.extended(Target);
 
-    model.prototype.scopes = model.prototype.scopes || {};
+    Target.prototype.scopes = Target.prototype.scopes || {};
 
-    _.defaults(model.prototype.scopes, this.prototype.scopes || {});
+    _.defaults(Target.prototype.scopes, this.prototype.scopes || {});
 
-    Object.keys(model.prototype.scopes).forEach(function(property) {
-      model.prototype[property] = function() {
+    Object.keys(Target.prototype.scopes).forEach(function(property) {
+      Target.prototype[property] = function() {
         var _this = this;
         var passedInArguments = _.toArray(arguments);
 
@@ -32,16 +32,16 @@ module.exports = function(bookshelf) {
         }
       };
 
-      model[property] = function() {
-        var instance = model.forge();
+      Target[property] = function() {
+        var instance = Target.forge();
         return instance[property].apply(instance, arguments);
       };
     });
 
     _.each(['hasMany', 'hasOne', 'belongsToMany', 'morphOne', 'morphMany',
       'belongsTo', 'through'], function(method) {
-      var original = model.prototype[method];
-      model.prototype[method] = function() {
+      var original = Target.prototype[method];
+      Target.prototype[method] = function() {
         var relationship = original.apply(this, arguments);
         var target = relationship.model || relationship.relatedData.target;
         var originalSelectConstraints = relationship.relatedData.selectConstraints;
@@ -93,8 +93,6 @@ module.exports = function(bookshelf) {
 
       };
     });
-
-    return model;
   };
 
   var Model = bookshelf.Model.extend({
@@ -102,6 +100,7 @@ module.exports = function(bookshelf) {
     scopes: null,
 
     initialize: function() {
+      base.prototype.initialize.call(this)
       this.addScope();
     },
 
@@ -121,6 +120,9 @@ module.exports = function(bookshelf) {
       return this.resetQuery();
     }
   }, {
+
+    extended: extended,
+
     unscoped: function() {
       return this.forge().unscoped();
     }
