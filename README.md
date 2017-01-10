@@ -1,3 +1,5 @@
+# The main repo for this project has moved to [jtwebman/bookshelf-scopes](https://github.com/jtwebman/bookshelf-scopes)
+
 # Bookshelf-Scopes
 
 [![Circle CI](https://circleci.com/gh/pk4media/bookshelf-scopes/tree/master.svg?style=svg&circle-token=4f67b03079c057b9ae20ef5485459f97215eebe7)](https://circleci.com/gh/pk4media/bookshelf-scopes/tree/master)
