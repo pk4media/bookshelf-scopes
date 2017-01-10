@@ -102,6 +102,7 @@ module.exports = function(bookshelf) {
     scopes: null,
 
     initialize: function() {
+      base.prototype.initialize.call(this)
       this.addScope();
     },
 

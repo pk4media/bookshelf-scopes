@@ -228,4 +228,22 @@ describe('scopes - basic scope', function() {
     });
   });
 
+  it('plugin initialize calls super initialize (#10)', function() {
+
+    var superInitializeCalled = 0;
+    var bookshelf = require('bookshelf')(knex);
+    bookshelf.Model = bookshelf.Model.extend({
+      initialize: function() {
+        superInitializeCalled++;
+      }
+    });
+    bookshelf.plugin(require('../src/scopes'));
+    var TestModel1 = bookshelf.Model.extend({
+      tableName: 'testmodel'
+    });
+
+    TestModel1.forge();
+    expect(superInitializeCalled).to.equal(1);
+  });
+
 });
