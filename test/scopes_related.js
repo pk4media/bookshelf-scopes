@@ -200,7 +200,7 @@ describe('scopes - related scope', function() {
       tableName: 'testmodel',
       scopes: {
         active: function(qb) {
-          if (this !== TestModel1.prototype) {
+          if (!(this instanceof bookshelf.Collection) || this.model !== TestModel1) {
             throw new Error('this not set to target prototype');
           }
 
